@@ -1,36 +1,14 @@
-export const config = {
-  runtime: "nodejs", // força Node (não Edge)
-};
+import axios from "axios";
 
 let cache = {
   data: null,
-  lastUpdate: 0,
+  lastUpdate: null,
 };
 
 const ONE_HOUR = 60 * 60 * 1000;
 
-export default async function handler(req, res) {
-
-  if (!process.env.EXCHANGE_API_KEY) {
-    return res.status(500).json({
-      error: "API key não encontrada",
-      debug: Object.keys(process.env),
-    });
-  }
-
-
+export default async function ratesHandler(req, res) {
   try {
-    const now = Date.now();
-
-    // 🧠 Cache em memória
-    if (cache.data && now - cache.lastUpdate < ONE_HOUR) {
-      return res.status(200).json({
-        source: "cache",
-        updated_at: cache.lastUpdate,
-        data: cache.data,
-      });
-    }
-
     const apiKey = process.env.EXCHANGE_API_KEY;
 
     if (!apiKey) {
@@ -39,41 +17,36 @@ export default async function handler(req, res) {
       });
     }
 
-    const response = await fetch(
-      `https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`,
-      {
-        headers: {
-          "Accept": "application/json",
-          "User-Agent": "kambioz-api/1.0",
-        },
-      }
-    );
+    const now = Date.now();
 
-    if (!response.ok) {
-      const text = await response.text();
-      return res.status(response.status).json({
-        error: "Erro ao buscar taxas",
-        status: response.status,
-        details: text,
+    // usa cache
+    if (cache.data && now - cache.lastUpdate < ONE_HOUR) {
+      return res.json({
+        source: "cache",
+        updated_at: cache.lastUpdate,
+        data: cache.data,
       });
     }
 
-    const data = await response.json();
+    const response = await axios.get(
+      `https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`
+    );
 
     cache = {
-      data,
+      data: response.data,
       lastUpdate: now,
     };
 
-    return res.status(200).json({
+    return res.json({
       source: "api",
       updated_at: now,
-      data,
+      data: response.data,
     });
-  } catch (err) {
+  } catch (error) {
+    console.error(error.message);
     return res.status(500).json({
-      error: "Erro inesperado",
-      details: err.message,
+      error: "Erro ao buscar taxas",
+      details: error.message,
     });
   }
 }
