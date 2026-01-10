@@ -10,6 +10,15 @@ let cache = {
 const ONE_HOUR = 60 * 60 * 1000;
 
 export default async function handler(req, res) {
+
+  if (!process.env.EXCHANGE_API_KEY) {
+    return res.status(500).json({
+      error: "API key não encontrada",
+      debug: Object.keys(process.env),
+    });
+  }
+
+
   try {
     const now = Date.now();
 
