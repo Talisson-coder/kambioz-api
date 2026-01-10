@@ -22,7 +22,14 @@ export default async function handler(req, res) {
 
     // 🌐 Chamada à Exchange Rate API
     const response = await axios.get(
-      `https://v6.exchangerate-api.com/v6/${process.env.EXCHANGE_API_KEY}/latest/USD`
+      `https://v6.exchangerate-api.com/v6/${process.env.EXCHANGE_API_KEY}/latest/USD`,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0",
+          "Accept": "application/json",
+        },
+        timeout: 10000,
+      }
     );
 
     cache = {
